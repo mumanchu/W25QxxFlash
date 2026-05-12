@@ -1,4 +1,4 @@
-# Library for all Winbond W25Qxxx Flash Memory Chips
+# Library for all Winbond W25Qxxx SPI Flash Memory Chips
 
 Another library from _mumanchu_.
 
@@ -10,7 +10,9 @@ The library will be released when the example Sketch is ready.
 
 ## Description
 
-Library for all W25Qxxx Winbond chips, 1..512Mbits.
+These chips all connect to the MCU via the SPI interface.
+
+Library for all W25Qxxx Winbond Flash memory chips, 1..512Mbits.
 
 - W25Q10		1Mbit		128Kbytes
 - W25Q20		2Mbit		256Kbytes
@@ -22,10 +24,10 @@ Library for all W25Qxxx Winbond chips, 1..512Mbits.
 - W25Q256		256Mbit		32Mbytes
 - W25Q512		512Mbit		64Mbytes
 
-All the chips use the same API.
+All the chips have the same API.
 
 These are the methods:
-```
+```cpp
 class W25QxxFlash
 {
 	bool begin(SPIClass* spi, uint spiCsPin, uint sizeMbits);
@@ -54,6 +56,8 @@ class W25QxxFlash
 	bool test();
 };
 ```
+Refer to the commented source code for details.
+
 
 ## Data Sheets
 
