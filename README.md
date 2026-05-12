@@ -10,9 +10,8 @@ The library will be released when the example Sketch is ready.
 
 ## Description
 
+Library for all W25Qxxx Winbond Flash memory chips, 1..512Mbits. \
 These chips all connect to the MCU via the SPI interface.
-
-Library for all W25Qxxx Winbond Flash memory chips, 1..512Mbits.
 
 - W25Q10		1Mbit		128Kbytes
 - W25Q20		2Mbit		256Kbytes
@@ -56,7 +55,7 @@ class W25QxxFlash
 	bool test();
 };
 ```
-Refer to the commented source code for details.
+Refer to the commented source code for details. The `test()` method can be used as an example.
 
 
 ## Data Sheets
