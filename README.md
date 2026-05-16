@@ -83,6 +83,7 @@ https://www.winbond.com/hq/support/documentation
 | Date       | Version  | Details |
 |:---------- |:---------|:----------- |
 | 2026.05.16 | 1.0.0	| First release |
+| 2026.05.16 | 1.0.1	| Correct include file name in library.properties |
 
 <br/>
 
