@@ -52,7 +52,7 @@ Refer to the commented source code for details. The `test()` method can be used 
 
 ## Example Sketch
 
-To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, and a full SWD/JTAG debug connector :-)
+To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-)
 
 Here are some hard-to-find technical details of this board, including a schematic \
 https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
