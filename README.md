@@ -52,16 +52,16 @@ Refer to the commented source code for details. The `test()` method can be used 
 
 ## Example Sketch
 
-To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying). 
+To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). 
 
 This STM32 board is recommended. It has a 16Mbit W25Q16 flash chip, and a full SWD/JTAG debug connector.
 
-![STM32F407ZGT6 board](https://github.com/mumanchu/mumanchu/tree/main/assets/W25QxxFlash/stm32f407zgt6-board.jpg)
+![STM32F407ZGT6 board](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-board.jpg)
 
-Here are some hard-to-find technical details of this board:
+Here are some hard-to-find technical details of this board, \
 https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
 
-The example doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes about 4 minutes 22 seconds.
+The example sketch doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes about 4 minutes 22 seconds.
 
 ## Data Sheets
 
@@ -69,7 +69,7 @@ WINBOND CHIP RANGE \
 https://www.winbond.com/productResource-files/DA05-0006.pdf
 
 TYPICAL DATA SHEET, W25Q512 = 64Mbytes \
-https://github.com/mumanchu/mumanchu/tree/main/assets/W25QxxFlash/W25Q512JV.pdf
+https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/W25Q512JV.pdf
 
 W25Q16 16Mbit = 2Mbytes \
 https://stm32-base.org/assets/pdf/devices/W25Q16JV.pdf
