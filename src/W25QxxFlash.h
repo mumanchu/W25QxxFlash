@@ -2,12 +2,12 @@
 
 /////////////////////////////////////////////////////////////////////
 // Winbond W25Qxxx SPI Serial Flash Memory
-// Copyright (C) mumanchu and muman.ch, 2025.01.15
+// Copyright (C) mumanchu and muman.ch, 2025.01.16
 // 
 // https://github/mumanchu/W25QxxFlash
 // https://muman.ch/muman/index.htm?muman-matts-blog.htm
 /*
-Library for all W25Qxxx Winbond chips, 1..512Mbits.
+Library for all W25Qxxx SPI Winbond chips, 1..512Mbits.
 
 W25Q10		1Mbit		128Kbytes
 W25Q20		2Mbit		256Kbytes
@@ -30,7 +30,6 @@ https://stm32-base.org/assets/pdf/devices/W25Q16JV.pdf
 
 Other data sheets can be found on the Winbond website
 https://www.winbond.com/hq/support/documentation
-
 */
 
 
@@ -60,10 +59,10 @@ public:
 	bool eraseChip();
 	bool isErased();
 
-	enum RDREG { RDSTATUS1 = 0x05, RDSTATUS2 = 0x35, RDSTATUS3 = 0x15 };
-	enum WRREG { WRSTATUS1 = 0x01, WRSTATUS2 = 0x31, WRSTATUS3 = 0x11 };
-	bool readRegister(RDREG reg, byte* data);
-	bool writeRegister(WRREG reg, byte data);
+	enum W25Q_RDREG { RDSTATUS1 = 0x05, RDSTATUS2 = 0x35, RDSTATUS3 = 0x15 };
+	enum W25Q_WRREG { WRSTATUS1 = 0x01, WRSTATUS2 = 0x31, WRSTATUS3 = 0x11 };
+	bool readRegister(W25Q_RDREG reg, byte* data);
+	bool writeRegister(W25Q_WRREG reg, byte data);
 
 	bool test();
 
@@ -145,7 +144,7 @@ bool W25QxxFlash::reset()
 	sendAndReceive(&enableReset, NULL, 1);
 	sendAndReceive(&resetDevice, NULL, 1);
 
-	delayMicroseconds(1000);
+	delayMicroseconds(100);
 	return true;
 }
 
@@ -155,8 +154,8 @@ bool W25QxxFlash::reset()
 
 // Read Chip Information
 // manufacturer = JEDEC manufacturer ID, 0xEF for Winbond chips
-// memtype = 
-// size = size in Mbits
+// memtype = see data sheets
+// size = size in Mbits, 1..512
 bool W25QxxFlash::readChipInfo(uint* manufacturer, uint* memType, uint* size)
 {
 	*manufacturer = 0;
@@ -223,14 +222,12 @@ bool W25QxxFlash::readData(uint address, byte* data, uint length)
 	while (length) {
 		uint bytesToRead = length > maxLength ? maxLength : length;
 
-		SPI.beginTransaction(spiSettings);
+		spi->beginTransaction(spiSettings);
 		digitalWrite(csPin, 0);
-
-		SPI.transfer(tx, 5);
-		SPI.transfer(data, bytesToRead);
-
+		spi->transfer(tx, 5);
+		spi->transfer(data, bytesToRead);
 		digitalWrite(csPin, 1);
-		SPI.endTransaction();
+		spi->endTransaction();
 
 		data += bytesToRead;
 		length -= bytesToRead;
@@ -244,7 +241,7 @@ bool W25QxxFlash::readData(uint address, byte* data, uint length)
 // Waits until data has been written (blocking function)
 bool W25QxxFlash::writeData(uint address, const byte* data, uint length)
 {
-	ASSERT((address + length < numBytes) && (length != 0));
+	ASSERT((address + length <= numBytes) && (length != 0));
 
 	while (length) {
 		int pageOffset = address % 256;
@@ -254,17 +251,20 @@ bool W25QxxFlash::writeData(uint address, const byte* data, uint length)
 
 		byte tx[4] = { 0x02, address >> 16, address >> 8, address };
 
+		// automatic write disable after erase or program
 		writeEnable();
 
-		SPI.beginTransaction(spiSettings);
+		spi->beginTransaction(spiSettings);
 		digitalWrite(csPin, 0);
-		SPI.transfer(tx, 4);
-		SPI.transfer(data, NULL, bytesToWrite);
+		spi->transfer(tx, 4);
+		spi->transfer(data, NULL, bytesToWrite);
 		digitalWrite(csPin, 1);
-		SPI.endTransaction();
+		spi->endTransaction();
 
-		if (!waitWhileBusy(100))
+		if (!waitWhileBusy(1000)) {
+			LOGERROR("writeData() timeout");
 			return false;
+		}
 
 		address += bytesToWrite;
 		data += bytesToWrite;
@@ -277,7 +277,7 @@ bool W25QxxFlash::writeData(uint address, const byte* data, uint length)
 /////////////////////////////////////////////////////////////////////
 // Erase Methods
 // After each call, poll with readBusyBit() or waitWhileBusy() 
-// until erase is complete. See data sheet for worst-case timouts.
+// until erase is complete. See data sheet for worst-case timeouts.
 
 // Erase a 4KByte sector
 bool W25QxxFlash::eraseSector(uint sector)
@@ -331,7 +331,6 @@ bool W25QxxFlash::doErase(byte cmd, uint address)
 	byte tx[4] = { cmd, address >> 16, address >> 8, address };
 	writeEnable();
 	sendAndReceive(tx, NULL, 4);
-	//TODO can we detect an error and return false?
 	return true;
 }
 
@@ -345,7 +344,7 @@ bool W25QxxFlash::readBusyBit(bool* busyBit)
 {
 	*busyBit = false;
 	byte status1;
-	if (!readRegister(RDREG::RDSTATUS1, &status1))
+	if (!readRegister(RDSTATUS1, &status1))
 		return false;
 	*busyBit = status1 & 0x01;
 	return true;
@@ -358,7 +357,7 @@ bool W25QxxFlash::waitWhileBusy(ulong msTimeout)
 
 	while (1) {
 		byte sr1;
-		if (!readRegister(RDREG::RDSTATUS1, &sr1))
+		if (!readRegister(RDSTATUS1, &sr1))
 			return false;
 		if ((sr1 & 0x01) == 0) {
 			// not busy
@@ -388,7 +387,7 @@ bool W25QxxFlash::writeEnable(bool enable /*=true*/)
 }
 
 // Read a status register
-bool W25QxxFlash::readRegister(RDREG reg, byte* data)
+bool W25QxxFlash::readRegister(W25Q_RDREG reg, byte* data)
 {
 	byte tx[2] = { (byte)reg, 0xff };
 	byte rx[2];
@@ -398,7 +397,7 @@ bool W25QxxFlash::readRegister(RDREG reg, byte* data)
 }
 
 // Write a status register
-bool W25QxxFlash::writeRegister(WRREG reg, byte data)
+bool W25QxxFlash::writeRegister(W25Q_WRREG reg, byte data)
 {
 	byte tx[2] = { (byte)reg, data };
 	sendAndReceive(tx, NULL, 2);
@@ -409,21 +408,21 @@ bool W25QxxFlash::writeRegister(WRREG reg, byte data)
 // rx = NULL to ignore the response
 void W25QxxFlash::sendAndReceive(const byte* tx, byte* rx, uint length)
 {
-	SPI.beginTransaction(spiSettings);
+	spi->beginTransaction(spiSettings);
 	digitalWrite(csPin, 0);
-	SPI.transfer(tx, rx, length);
+	spi->transfer(tx, rx, length);
 	digitalWrite(csPin, 1);
-	SPI.endTransaction();
+	spi->endTransaction();
 }
 
 
 // Patched out - you only need to do this once
-#if 0
+#if 1
 // THIS TEST OVERWRITES *ALL* THE DATA IN THE FLASH!
 // The flash is first erased to all FFs, and verified it's all FFs.
 // A random byte is written to each location, one byte at a time. 
 // Then reads each byte back and verifies it is correct.
-// The eeprom is erased again and verified that it's all FFs.
+// The flash is erased again and verified that it's all FFs.
 // It will take many seconds to run, it's not designed to be fast.
 bool W25QxxFlash::test()
 {

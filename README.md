@@ -2,12 +2,6 @@
 
 Another library from _mumanchu_.
 
-## *** PRELIMINARY ***
-
-_If it doesn't work, please let us know..._ \
-The library will be released when the example Sketch is ready.
-
-
 ## Description
 
 Library for all W25Qxxx Winbond Flash memory chips, 1..512Mbits. \
@@ -34,7 +28,6 @@ class W25QxxFlash
 
 	bool readChipInfo(uint* manufacturer, uint* memType, uint* id);
 	bool readUniqueId(uint64_t* uniqueId);
-	
 	bool readBusyBit(bool* busyBit);
 	bool waitWhileBusy(ulong msTimeout);
 
@@ -47,16 +40,28 @@ class W25QxxFlash
 	bool eraseChip();
 	bool isErased();
 
-	enum RDREG { RDSTATUS1 = 0x05, RDSTATUS2 = 0x35, RDSTATUS3 = 0x15 };
-	enum WRREG { WRSTATUS1 = 0x01, WRSTATUS2 = 0x31, WRSTATUS3 = 0x11 };
-	bool readRegister(RDREG reg, byte* data);
-	bool writeRegister(WRREG reg, byte data);
+	enum W25Q_RDREG { RDSTATUS1 = 0x05, RDSTATUS2 = 0x35, RDSTATUS3 = 0x15 };
+	enum W25Q_WRREG { WRSTATUS1 = 0x01, WRSTATUS2 = 0x31, WRSTATUS3 = 0x11 };
+	bool readRegister(W25Q_RDREG reg, byte* data);
+	bool writeRegister(W25Q_WRREG reg, byte data);
 
 	bool test();
 };
 ```
 Refer to the commented source code for details. The `test()` method can be used as an example.
 
+## Example Sketch
+
+To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying). 
+
+This STM32 board is recommended. It has a 16Mbit W25Q16 flash chip, and a full SWD/JTAG debug connector.
+
+![STM32F407ZGT6 board](https://github.com/mumanchu/mumanchu/tree/main/assets/W25QxxFlash/stm32f407zgt6-board.jpg)
+
+Here are some hard-to-find technical details of this board:
+https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
+
+The example doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes about 4 minutes 22 seconds.
 
 ## Data Sheets
 
@@ -64,7 +69,7 @@ WINBOND CHIP RANGE \
 https://www.winbond.com/productResource-files/DA05-0006.pdf
 
 TYPICAL DATA SHEET, W25Q512 = 64Mbytes \
-https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/W25Q512-data-sheet.pdf
+https://github.com/mumanchu/mumanchu/tree/main/assets/W25QxxFlash/W25Q512JV.pdf
 
 W25Q16 16Mbit = 2Mbytes \
 https://stm32-base.org/assets/pdf/devices/W25Q16JV.pdf
@@ -77,7 +82,7 @@ https://www.winbond.com/hq/support/documentation
 
 | Date       | Version  | Details |
 |:---------- |:---------|:----------- |
-| 2026.05.12 | 0.0.0	| Preliminary |
+| 2026.05.16 | 1.0.0	| First release |
 
 <br/>
 
