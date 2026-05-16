@@ -52,16 +52,17 @@ Refer to the commented source code for details. The `test()` method can be used 
 
 ## Example Sketch
 
-To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). 
+To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, and a full SWD/JTAG debug connector :-)
 
-This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, and a full SWD/JTAG debug connector. And it has an SD card which is also on the SPI bus.
-
-![STM32F407ZGT6 board](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-board.jpg)
-
-Here are some hard-to-find technical details of this board, \
+Here are some hard-to-find technical details of this board, including a schematic \
 https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
 
 The example sketch doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes about 4 minutes 22 seconds.
+
+Debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via the SWD pins. This is a great combination.
+
+![STM32F407ZGT6 and ST-LINK](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-debug.jpg)
+
 
 ## Data Sheets
 
