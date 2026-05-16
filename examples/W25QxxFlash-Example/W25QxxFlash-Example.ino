@@ -82,7 +82,6 @@ void setup()
 		while (1) yield();
 	}
 
-	ulong t1 = millis();
 	// run the lengthy flash test
 	// the test takes 4 minutes 22 seconds
 	if (!flash.test()) {
@@ -91,10 +90,6 @@ void setup()
 		while (1) yield();
 	}
 	Serial.println("flash.test() successful");
-
-	t1 = millis() - t1;
-	Serial.println(t1);
-	Serial.flush();
 
 	// read some data from the flash
 	// will be all FFs because the test erased it
