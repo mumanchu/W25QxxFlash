@@ -91,6 +91,6 @@ https://www.winbond.com/hq/support/documentation
 
 ## Joke of the Week
 
-Humans need at least 8 hours of sleep a day, and as much as you can get at night as well.
+Humans need at least 8 hours of sleep a day, and as much as they can get at night as well.
 
 
