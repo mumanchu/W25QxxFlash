@@ -1,6 +1,6 @@
 # Library for all Winbond W25Qxxx SPI Flash Memory Chips
 
-Another library from _mumanchu_.
+**This version of the library is only suitable for 32-bit processors. It has been tested on the STM32.**
 
 ## Description
 
