@@ -1,11 +1,13 @@
-# Library for all Winbond W25Qxxx SPI Flash Memory Chips
+# Library for SPI Flash Memory Chips
 
 **This version of the library is only suitable for 32-bit processors. It has been tested on the STM32.**
 
 ## Description
 
-Library for all W25Qxxx Winbond Flash memory chips, 1..512Mbits. \
+Library for SPI Flash memory chips, 1..512Mbits. \
 These chips all connect to the MCU via the SPI interface.
+
+Here are some example WinBond chips, but it should work with SPI flash memories from most manufacturers.
 
 - W25Q10		1Mbit		128Kbytes
 - W25Q20		2Mbit		256Kbytes
