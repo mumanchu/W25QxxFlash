@@ -87,6 +87,7 @@ https://www.winbond.com/hq/support/documentation
 |:---------- |:---------|:----------- |
 | 2026.05.16 | 1.0.0	| First release |
 | 2026.05.16 | 1.0.1	| Correct include file name in library.properties |
+| 2026.07.17 | 1.0.2    | Cosmetic updates (Title, README, example comments) |
 
 <br/>
 
