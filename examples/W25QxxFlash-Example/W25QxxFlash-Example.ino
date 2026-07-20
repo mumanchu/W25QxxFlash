@@ -56,7 +56,7 @@ void LogError(const char* msg, const char* filePath, uint line)
 W25QxxFlash flash;
 
 // Some data from the flash
-byte flashData[1204];
+byte flashData[1024];
 
 
 // Startup
