@@ -80,6 +80,9 @@ https://stm32-base.org/assets/pdf/devices/W25Q16JV.pdf
 Other data sheets can be found on the Winbond website \
 https://www.winbond.com/hq/support/documentation
 
+If you want to learn about SPI, this is a great introduction, \
+https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
+
 
 # Revision History
 
