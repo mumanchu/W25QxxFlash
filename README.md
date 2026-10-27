@@ -1,4 +1,4 @@
-# Library for SPI Flash Memory Chips
+# Arduino Library for SPI Flash Memory Chips
 
 **This version of the library is only suitable for 32-bit processors. It has been tested on the STM32.**
 
@@ -25,17 +25,21 @@ These are the methods:
 ```cpp
 class W25QxxFlash
 {
+public:
+	// check your SPI speed, max is 18MHz for STM32F103
+	SPISettings spiSettings = SPISettings(18000000, MSBFIRST, SPI_MODE0);
+
 	bool begin(SPIClass* spi, uint spiCsPin, uint sizeMbits);
 	bool reset();
 
-	bool readChipInfo(uint* manufacturer, uint* memType, uint* id);
+	bool readChipInfo(uint* manufacturer, uint* memType, uint* chipId);
 	bool readUniqueId(uint64_t* uniqueId);
 	bool readBusyBit(bool* busyBit);
 	bool waitWhileBusy(ulong msTimeout);
 
 	bool readData(uint address, byte* data, uint length);
 	bool writeData(uint address, const byte* data, uint length);
-	
+
 	bool eraseSector(uint sector);
 	bool eraseBlock32(uint block);
 	bool eraseBlock64(uint block);
@@ -47,19 +51,26 @@ class W25QxxFlash
 	bool readRegister(W25Q_RDREG reg, byte* data);
 	bool writeRegister(W25Q_WRREG reg, byte data);
 
+	#ifdef W25Q_ENABLE_FLASH_TEST
 	bool test();
+	#endif
 };
 ```
-Refer to the commented source code for details. The `test()` method can be used as an example.
+Refer to the commented source code for details. 
+
+The `test()` method is only available if you add `#define W25Q_ENABLE_FLASH_TEST` before `#include "W25QxxFlash.h"`, see the example sketch.
 
 ## Example Sketch
 
-To run the example sketch you will need a board with a fitted W25Qxx chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-)
+To run the example sketch you will need a board with a fitted W25Qxx chip, or a breakout board with a Winbond chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-)
 
 Here are some hard-to-find technical details of this board, including a schematic \
 https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
 
-The example sketch doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes about 4 minutes 22 seconds.
+The example sketch doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes several minutes, depending on your chip size.
+
+> [!NOTE]
+> If using the Arduino Serial Monitor, '\r' will always do a line feed so you will see the addresses scrolling up instead of being refreshed on the same line. That's why I use PuTTY.
 
 Debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via the SWD pins. This is a great combination.
 
@@ -71,7 +82,7 @@ Debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via
 WINBOND CHIP RANGE \
 https://www.winbond.com/productResource-files/DA05-0006.pdf
 
-TYPICAL DATA SHEET, W25Q512 = 64Mbytes \
+TYPICAL DATA SHEET, W25Q512 = 512Mbits = 64Mbytes \
 https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/W25Q512JV.pdf
 
 W25Q16 16Mbit = 2Mbytes \
@@ -88,9 +99,10 @@ https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi
 
 | Date       | Version  | Details |
 |:---------- |:---------|:----------- |
-| 2026.05.16 | 1.0.0	| First release |
-| 2026.05.16 | 1.0.1	| Correct include file name in library.properties |
+| 2026.10.27 | 1.0.3    | Improvements after testing with new chips, see github Releases comment |
 | 2026.07.17 | 1.0.2    | Cosmetic updates (Title, README, example comments) |
+| 2026.05.16 | 1.0.1	| Correct include file name in library.properties |
+| 2026.05.16 | 1.0.0	| First release |
 
 <br/>
 
@@ -98,5 +110,3 @@ https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi
 ## Joke of the Week
 
 Humans need at least 8 hours of sleep a day, and as much as they can get at night as well.
-
-
