@@ -113,8 +113,10 @@ bool W25QxxFlash::begin(SPIClass* spi, uint spiCsPin, uint sizeMbits)
 
 	// check the chip is responding and is the expected size
 	uint manufacturer, memType, id;
-	if (!readChipInfo(&manufacturer, &memType, &id))
+	if (!readChipInfo(&manufacturer, &memType, &id)) {
+		LOGERROR("no response");
 		return false;
+	}
 	if (manufacturer != 0xef || id != chipId) {
 		LOGERROR("wrong flash chip");
 		return false;
@@ -167,11 +169,11 @@ bool W25QxxFlash::readChipInfo(uint* manufacturer, uint* memType, uint* chipId)
 
 	// read JEDEC ID
 	static const byte tx[4] = { 0x9f, 0xff, 0xff, 0xff };
-	byte rx[4] = { 0 };
+	byte rx[4];
 	sendAndReceive(tx, rx, 4);
 
-	// all 0xff = no response
-	if (*(uint32_t*)rx == 0xffffffff)
+	// no response
+	if (*(uint32_t*)rx == 0xffffffff || *(uint32_t*)rx == 0)
 		return false;
 
 	*manufacturer = rx[1];
@@ -438,7 +440,7 @@ void W25QxxFlash::sendAndReceive(const byte* tx, byte* rx, uint length)
 // THIS TEST OVERWRITES *ALL* THE DATA IN THE FLASH!
 // The flash is first erased to all FFs, and verified it's all FFs.
 // A random byte is written to every location. 
-// Each byte is read bacl and verified it is correct.
+// Each byte is read back and verified it is correct.
 // The flash is erased again and verified that it's all FFs.
 // This can take a several minutes to run, depending on the chip size.
 bool W25QxxFlash::test()
