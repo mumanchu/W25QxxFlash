@@ -437,17 +437,17 @@ void W25QxxFlash::sendAndReceive(const byte* tx, byte* rx, uint length)
 
 // THIS TEST OVERWRITES *ALL* THE DATA IN THE FLASH!
 // The flash is first erased to all FFs, and verified it's all FFs.
-// A random byte is written to each location, one byte at a time. 
-// Then reads each byte back and verifies it is correct.
+// A random byte is written to every location. 
+// Each byte is read bacl and verified it is correct.
 // The flash is erased again and verified that it's all FFs.
-// It will take many seconds to run, it's not designed to be fast.
+// This can take a several minutes to run, depending on the chip size.
 bool W25QxxFlash::test()
 {
 	// worst case erase time in milliseconds
 	uint msEraseTimeout = (numMBits >= 256 ? 400 : numMBits * 2) * 1000;
 
 	// data buffer, length must be power-of-2
-	byte buf[256];
+	byte buf[512];
 	const uint bufSize = sizeof(buf);
 
 	// is the chip already erased?
@@ -476,7 +476,10 @@ bool W25QxxFlash::test()
 	Serial.flush();
 	#endif
 
-	srandom(1234);
+	// use a different random number sequence every time
+	uint seed = (uint)micros();
+
+	srandom(seed);
 	for (uint adds = 0; adds < numBytes; adds += bufSize) {
 		#ifdef DEBUG
 		sprintf((char*)buf, "%08x\r", adds);
@@ -496,7 +499,7 @@ bool W25QxxFlash::test()
 	Serial.flush();
 	#endif
 
-	srandom(1234);
+	srandom(seed);
 	for (uint adds = 0; adds < numBytes; adds += bufSize) {
 		#ifdef DEBUG
 		sprintf((char*)buf, "%08x\r", adds);
