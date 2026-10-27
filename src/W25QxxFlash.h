@@ -1,11 +1,11 @@
 #pragma once
 
-/////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // Winbond W25Qxxx SPI Serial Flash Memory
-// Copyright (C) mumanchu and muman.ch, 2025.01.16
+// Copyright (C) https://muman.ch + https://github.com/mumanchu, 2026.10.27
+// If you re-use this software, please include the above copyright notice
 // 
 // https://github/mumanchu/W25QxxFlash
-// https://muman.ch/muman/index.htm?muman-matts-blog.htm
 /*
 Library for all W25Qxxx SPI Winbond chips, 1..512Mbits.
 
@@ -39,20 +39,22 @@ class W25QxxFlash
 	uint numMBits;
 	SPIClass* spi;
 	uint csPin;
-	SPISettings spiSettings;
 
 public:
+	// check your SPI speed, max is 18MHz for STM32F103
+	SPISettings spiSettings = SPISettings(18000000, MSBFIRST, SPI_MODE0);
+
 	bool begin(SPIClass* spi, uint spiCsPin, uint sizeMbits);
 	bool reset();
 
-	bool readChipInfo(uint* manufacturer, uint* memType, uint* id);
+	bool readChipInfo(uint* manufacturer, uint* memType, uint* chipId);
 	bool readUniqueId(uint64_t* uniqueId);
 	bool readBusyBit(bool* busyBit);
 	bool waitWhileBusy(ulong msTimeout);
 
 	bool readData(uint address, byte* data, uint length);
 	bool writeData(uint address, const byte* data, uint length);
-	
+
 	bool eraseSector(uint sector);
 	bool eraseBlock32(uint block);
 	bool eraseBlock64(uint block);
@@ -64,7 +66,9 @@ public:
 	bool readRegister(W25Q_RDREG reg, byte* data);
 	bool writeRegister(W25Q_WRREG reg, byte data);
 
+	#ifdef W25Q_ENABLE_FLASH_TEST
 	bool test();
+	#endif
 
 protected:
 	bool writeEnable(bool enable = true);
@@ -95,6 +99,7 @@ bool W25QxxFlash::begin(SPIClass* spi, uint spiCsPin, uint sizeMbits)
 		return false;
 	}
 	this->numMBits = sizeMbits;
+	this->spi = spi;
 
 	// chip IDs are 0x11..0x20 for 1..512Mbits
 	uint chipId = 0x10;
@@ -105,8 +110,6 @@ bool W25QxxFlash::begin(SPIClass* spi, uint spiCsPin, uint sizeMbits)
 	csPin = spiCsPin;
 	pinMode(csPin, OUTPUT);
 	digitalWrite(csPin, 1);
-	this->spi = spi;
-	spiSettings = SPISettings(100000000, MSBFIRST, SPI_MODE0);
 
 	// check the chip is responding and is the expected size
 	uint manufacturer, memType, id;
@@ -153,17 +156,17 @@ bool W25QxxFlash::reset()
 // Info Methods
 
 // Read Chip Information
-// manufacturer = JEDEC manufacturer ID, 0xEF for Winbond chips
-// memtype = see data sheets
-// size = size in Mbits, 1..512
-bool W25QxxFlash::readChipInfo(uint* manufacturer, uint* memType, uint* size)
+// manufacturer : JEDEC manufacturer ID, 0xEF for Winbond chips
+// memType      : see data sheets
+// chipId       : 0x11..0x20 for 1..512Mbits
+bool W25QxxFlash::readChipInfo(uint* manufacturer, uint* memType, uint* chipId)
 {
 	*manufacturer = 0;
 	*memType = 0;
-	*size = 0;
+	*chipId = 0;
 
 	// read JEDEC ID
-	const byte tx[4] = { 0x9f, 0xff, 0xff, 0xff };
+	static const byte tx[4] = { 0x9f, 0xff, 0xff, 0xff };
 	byte rx[4] = { 0 };
 	sendAndReceive(tx, rx, 4);
 
@@ -173,7 +176,7 @@ bool W25QxxFlash::readChipInfo(uint* manufacturer, uint* memType, uint* size)
 
 	*manufacturer = rx[1];
 	*memType = rx[2];
-	*size = rx[3];
+	*chipId = rx[3];
 	return true;
 }
 
@@ -182,7 +185,7 @@ bool W25QxxFlash::readUniqueId(uint64_t* uniqueId)
 {
 	*uniqueId = 0;
 
-	const byte tx1[13] = { 0x4b, 0xff, 0xff, 0xff, 0xff,
+	static const byte tx1[13] = { 0x4b, 0xff, 0xff, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 	byte rx1[13] = { 0 };
 	sendAndReceive(tx1, rx1, 13);
@@ -211,20 +214,34 @@ bool W25QxxFlash::readData(uint address, byte* data, uint length)
 {
 	ASSERT((address + length <= numBytes) && (length != 0));
 
-	// use fast mode for 100mHz clock (else max. is 50MHz for normal mode)
-	byte tx[5] = { 0x0B, address >> 16, address >> 8, address, 0xff };
+	// all 0xff if it fails
 	memset(data, 0xff, length);
-	// for normal mode, max 50MHz clock
-	//byte tx[4] = { 0x03, address >> 16, address >> 8, address };
+
+	// fast/normal mode message is different
+	byte tx[5];
+	bool fastMode = spiSettings.getClockFreq() > 50000000;
+	if (fastMode) {
+		// fast mode for 100MHz clock
+		//tx[5] = { 0x0B, address >> 16, address >> 8, address, 0xff };
+		tx[0] = 0x0b;
+		tx[4] = 0xff;
+	}
+	else {
+		// normal mode 50MHz
+		//tx[4] = { 0x03, address >> 16, address >> 8, address };
+		tx[0] = 0x03;
+	}
+	tx[1] = (byte)(address >> 16);
+	tx[2] = (byte)(address >> 8);
+	tx[3] = (byte)address;
 
 	const uint maxLength = 512;		// max message length
-
 	while (length) {
 		uint bytesToRead = length > maxLength ? maxLength : length;
 
 		spi->beginTransaction(spiSettings);
 		digitalWrite(csPin, 0);
-		spi->transfer(tx, 5);
+		spi->transfer(tx, fastMode ? 5 : 4);
 		spi->transfer(data, bytesToRead);
 		digitalWrite(csPin, 1);
 		spi->endTransaction();
@@ -232,7 +249,6 @@ bool W25QxxFlash::readData(uint address, byte* data, uint length)
 		data += bytesToRead;
 		length -= bytesToRead;
 	}
-	//TODO detect error and return false?
 	return true;
 }
 
@@ -301,7 +317,7 @@ bool W25QxxFlash::eraseBlock64(uint block)
 }
 
 // Erase the entire chip
-// delay numM
+// call waitBusy(msEraseTimeout) to find out when it's finished 
 bool W25QxxFlash::eraseChip()
 {
 	const byte tx = 0xc7;	// or 0x60
@@ -356,13 +372,13 @@ bool W25QxxFlash::waitWhileBusy(ulong msTimeout)
 	ulong ticks = millis();
 
 	while (1) {
-		byte sr1;
-		if (!readRegister(RDSTATUS1, &sr1))
+		byte status1;
+		if (!readRegister(RDSTATUS1, &status1))
 			return false;
-		if ((sr1 & 0x01) == 0) {
+		if ((status1 & 0x01) == 0) {
 			// not busy
 			// WEL bit (write enable) should have been reset
-			ASSERT((sr1 & 0x02) == 0);
+			ASSERT((status1 & 0x02) == 0);
 			break;
 		}
 		if ((millis() - ticks) > msTimeout) {
@@ -416,8 +432,9 @@ void W25QxxFlash::sendAndReceive(const byte* tx, byte* rx, uint length)
 }
 
 
-// Patched out - you only need to do this once
-#if 1
+// Patched out by default, you only need to do this once
+#ifdef W25Q_ENABLE_FLASH_TEST
+
 // THIS TEST OVERWRITES *ALL* THE DATA IN THE FLASH!
 // The flash is first erased to all FFs, and verified it's all FFs.
 // A random byte is written to each location, one byte at a time. 
@@ -429,8 +446,18 @@ bool W25QxxFlash::test()
 	// worst case erase time in milliseconds
 	uint msEraseTimeout = (numMBits >= 256 ? 400 : numMBits * 2) * 1000;
 
+	// data buffer, length must be power-of-2
+	byte buf[256];
+	const uint bufSize = sizeof(buf);
+
 	// is the chip already erased?
 	if (!isErased()) {
+
+		#ifdef DEBUG
+		Serial.println("Erasing...");
+		Serial.flush();
+		#endif
+
 		// erase the entire ship
 		if (!eraseChip())
 			return false;
@@ -443,31 +470,67 @@ bool W25QxxFlash::test()
 		}
 	}
 
-	// write random data one byte at a time
+	// write random data, buf[] bytes at a time
+	#ifdef DEBUG
+	Serial.println("Writing...");
+	Serial.flush();
+	#endif
+
 	srandom(1234);
-	for (int i = 0; i < numBytes; ++i) {
-		byte b = (byte)random();
-		if (!writeData(i, &b, 1))
+	for (uint adds = 0; adds < numBytes; adds += bufSize) {
+		#ifdef DEBUG
+		sprintf((char*)buf, "%08x\r", adds);
+		Serial.print((char*)buf);
+		Serial.flush();
+		#endif
+
+		for (uint i = 0; i < bufSize; ++i)
+			buf[i] = (byte)random();
+		if (!writeData(adds, buf, bufSize))
 			return false;
 	}
 
-	// read each byte back and verify the value
+	// read back and verify all the data
+	#ifdef DEBUG
+	Serial.println("Verifying...");
+	Serial.flush();
+	#endif
+
 	srandom(1234);
-	for (int i = 0; i < numBytes; ++i) {
-		byte b;
-		if (!readData(i, &b, 1))
+	for (uint adds = 0; adds < numBytes; adds += bufSize) {
+		#ifdef DEBUG
+		sprintf((char*)buf, "%08x\r", adds);
+		Serial.print((char*)buf);
+		Serial.flush();
+		#endif
+
+		if (!readData(adds, buf, bufSize))
 			return false;
-		if (b != (byte)random()) {
-			LOGERROR("verify failed");
-			return false;
+		for (uint i = 0; i < bufSize; ++i) {
+			byte b = (byte)random();
+			if (buf[i] != b) {
+				#ifdef DEBUG
+				char s[128];
+				sprintf(s, "verify failed : adds=0x%08x (%u), was %02x, sb %02x", 
+					adds + i, adds + i, buf[i], b);
+				LOGERROR(s);
+				#endif
+				return false;
+			}
 		}
 	}
 
 	// erase the chip again
+	#ifdef DEBUG
+	Serial.println("Erasing...");
+	Serial.flush();
+	#endif
+
 	if (!eraseChip())
 		return false;
 	if (!waitWhileBusy(msEraseTimeout))
 		return false;
+
 	// verify it's all FFs
 	if (!isErased()) {
 		LOGERROR("erase failed 2");
@@ -477,5 +540,4 @@ bool W25QxxFlash::test()
 	// it worked!
 	return true;
 }
-#endif
-
+#endif	// #ifdef W25Q_ENABLE_FLASH_TEST
