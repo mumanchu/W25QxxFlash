@@ -32,6 +32,8 @@ Other data sheets can be found on the Winbond website
 https://www.winbond.com/hq/support/documentation
 */
 
+typedef unsigned int uint;
+typedef unsigned long ulong;
 
 class W25QxxFlash
 {
