@@ -1,13 +1,14 @@
 # Arduino Library for SPI Flash Memory Chips
 
-**This version of the library is only suitable for 32-bit processors.**
+> [!IMPORTANT]
+> **This library is only suitable for 3.3V 32-bit processors. The flash chips require 3.3V, they will be damaged if connected to 5V!**
 
 ![W25Qxx Breakout Board](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/w25qxx-flash.jpg)
 
 
 ## Description
 
-Library for SPI Flash memory chips, 1..512Mbits. \
+Library for 3.3V SPI Flash memory chips, 1..512Mbits. \
 These chips all connect to the MCU via the SPI interface.
 
 Here are some example WinBond chips, but it should work with SPI flash memories from most manufacturers.
@@ -29,34 +30,34 @@ These are the methods:
 class W25QxxFlash
 {
 public:
-	// check your SPI speed, max is 18MHz for STM32F103
-	SPISettings spiSettings = SPISettings(18000000, MSBFIRST, SPI_MODE0);
+    // check your SPI speed, max is 18MHz for STM32F103
+    SPISettings spiSettings = SPISettings(18000000, MSBFIRST, SPI_MODE0);
 
-	bool begin(SPIClass* spi, uint spiCsPin, uint sizeMbits);
-	bool reset();
+    bool begin(SPIClass* spi, uint spiCsPin, uint sizeMbits);
+    bool reset();
 
-	bool readChipInfo(uint* manufacturer, uint* memType, uint* chipId);
-	bool readUniqueId(uint64_t* uniqueId);
-	bool readBusyBit(bool* busyBit);
-	bool waitWhileBusy(ulong msTimeout);
+    bool readChipInfo(uint* manufacturer, uint* memType, uint* chipId);
+    bool readUniqueId(uint64_t* uniqueId);
+    bool readBusyBit(bool* busyBit);
+    bool waitWhileBusy(ulong msTimeout);
 
-	bool readData(uint address, byte* data, uint length);
-	bool writeData(uint address, const byte* data, uint length);
+    bool readData(uint address, byte* data, uint length);
+    bool writeData(uint address, const byte* data, uint length);
 
-	bool eraseSector(uint sector);
-	bool eraseBlock32(uint block);
-	bool eraseBlock64(uint block);
-	bool eraseChip();
-	bool isErased();
+    bool eraseSector(uint sector);
+    bool eraseBlock32(uint block);
+    bool eraseBlock64(uint block);
+    bool eraseChip();
+    bool isErased();
 
-	enum W25Q_RDREG { RDSTATUS1 = 0x05, RDSTATUS2 = 0x35, RDSTATUS3 = 0x15 };
-	enum W25Q_WRREG { WRSTATUS1 = 0x01, WRSTATUS2 = 0x31, WRSTATUS3 = 0x11 };
-	bool readRegister(W25Q_RDREG reg, byte* data);
-	bool writeRegister(W25Q_WRREG reg, byte data);
+    enum W25Q_RDREG { RDSTATUS1 = 0x05, RDSTATUS2 = 0x35, RDSTATUS3 = 0x15 };
+    enum W25Q_WRREG { WRSTATUS1 = 0x01, WRSTATUS2 = 0x31, WRSTATUS3 = 0x11 };
+    bool readRegister(W25Q_RDREG reg, byte* data);
+    bool writeRegister(W25Q_WRREG reg, byte data);
 
-	#ifdef W25Q_ENABLE_FLASH_TEST
-	bool test();
-	#endif
+    #ifdef W25Q_ENABLE_FLASH_TEST
+    bool test();
+    #endif
 };
 ```
 Refer to the commented source code for details. 
@@ -79,6 +80,38 @@ Debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via
 
 ![STM32F407ZGT6 and ST-LINK](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-debug.jpg)
 
+## Using an SPI library with the Arduino Zero
+
+By default, the SPI pins (MISO, MOSI and SCK) on an Arduino zero are on the ICSP connector. The standard Arduino SPI pins do not work.
+
+However, you can configure the Zero to use the standard Arduino SPI pins (SCK=13, MOSI=12, MISO=11) by creating a new SPI channel.
+
+Add these lines after `#include <SPI.h>`,
+
+```cpp
+#ifdef _VARIANT_ARDUINO_ZERO_
+// New SPI channel for the Arduino Zero so it uses the standard pins,
+// else SPI is on the ICSP connector
+#include "wiring_private.h"    // for pinPeripheral() function
+static SPIClassSAMD mySPI(&sercom1, 12, 13, 11, SPI_PAD_0_SCK_1, SERCOM_RX_PAD_3);
+#endif
+```
+
+Add these lines to `setup()`, before `flash.begin()` is called,
+```cpp
+    #ifdef _VARIANT_ARDUINO_ZERO_
+    // override SPI so we can use the standard SPI pins 11/12/13
+    // (the Arduino Zero has the default SPI on the ICSP connector)
+    mySPI.begin();
+    SPI = mySPI;
+    // assign pins 11, 12, 13 to SERCOM functionality
+    pinPeripheral(11, PIO_SERCOM);
+    pinPeripheral(12, PIO_SERCOM);
+    pinPeripheral(13, PIO_SERCOM);
+    #else
+    SPI.begin();
+    #endif
+```
 
 ## Data Sheets
 
