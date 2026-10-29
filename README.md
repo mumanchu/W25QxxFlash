@@ -82,7 +82,7 @@ Debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via
 
 ## Using an SPI library with the Arduino Zero
 
-By default, the SPI pins (MISO, MOSI and SCK) on an Arduino zero are on the ICSP connector. The standard Arduino SPI pins do not work.
+By default, the SPI pins (MISO, MOSI and SCK) on an Arduino zero are on the ICSP connector. The standard Arduino SPI pins do not work. This means that shields which use SPI will not work with the Zero, including the Arduino shield I made to test the Flash chips.
 
 However, you can configure the Zero to use the standard Arduino SPI pins (SCK=13, MOSI=12, MISO=11) by creating a new SPI channel.
 
