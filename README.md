@@ -1,6 +1,9 @@
 # Arduino Library for SPI Flash Memory Chips
 
-**This version of the library is only suitable for 32-bit processors. It has been tested on the STM32.**
+**This version of the library is only suitable for 32-bit processors.**
+
+![W25Qxx Breakout Board](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/w25qxx-flash.jpg)
+
 
 ## Description
 
