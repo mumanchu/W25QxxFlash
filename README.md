@@ -66,10 +66,14 @@ The `test()` method is only available if you add `#define W25Q_ENABLE_FLASH_TEST
 
 ## Example Sketch
 
-To run the example sketch you will need a board with a fitted W25Qxx chip, or a breakout board with a Winbond chip. I used a very nice STM32F407ZGT6 board which I bought on Aliexpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-)
+To run the example sketch you will need a board with a fitted W25Qxx chip, or a breakout board with a Winbond chip connected SPI's CS, SCK, MOSI and MISO (plus 3.3V and GND). 
+
+I used a very nice STM32F407ZGT6 board which I bought on AliExpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-)
 
 Here are some hard-to-find technical details of this board, including a schematic \
 https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
+
+It was also tested with several W25Qxx breakout boards. These work well, but SPI speeds are limited by the MCU. _If the example sketch fails, reduce the SPI clock speed in `spiSettings` and try again._
 
 The example sketch doesn't do much. It initializes SPI then calls the comprehensive flash test method which takes several minutes, depending on your chip size.
 
