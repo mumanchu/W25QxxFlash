@@ -71,12 +71,9 @@ The `test()` method is only available if you add `#define W25Q_ENABLE_FLASH_TEST
 
 To run the example sketch you will need a board with a fitted W25Qxx chip, or a breakout board with a Winbond chip connected to SPI's W25Q_CS, W25Q_SCK, W25Q_MOSI and W25Q_MISO pins (plus 3.3V and GND). 
 
-I used a very nice STM32F407ZGT6 board which I bought on AliExpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a nice STM32F407ZGT6 MCU (32-bit Cortex M4 with FPU), a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-)
+The SPI channel must be configured for the flash memory chip and the SPI channel pins. These are different for each board. The example sketch contains definitions for some common baords. See the `#define W25Q_xxx` definitions.
 
-Here are some hard-to-find technical details of this board, including a schematic, \
-https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
-
-The library has also been tested with SMT32 Nucleo-64, ESP32-C3 and Arduino Zero SAMD51 boards.
+The library has been tested with SMT32 Nucleo-64, ESP32-C3 and Arduino Zero SAMD51 boards.
 
 These all worked well, but SPI speeds are limited by the MCU. _If the example sketch fails, reduce the SPI clock speed in `spiSettings` and try again._
 
@@ -87,12 +84,19 @@ The example sketch doesn't do much. It initializes SPI then calls the comprehens
 
 On the STM32 boards, debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via the SWD pins. This is a great combination.
 
+For the original tests, I used a very nice STM32F407ZGT6 board which I bought on AliExpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a nice STM32F407ZGT6 MCU (32-bit Cortex M4 with FPU), a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-) 
+
+Here are some hard-to-find technical details of this board, including a schematic, \
+https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
+
 ![STM32F407ZGT6 and ST-LINK](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-debug.jpg)
 
 
 ## Fast Modes
 
-Many of these chips support enhanced SPI communications called Dual and Quad modes, which can increase the read data rate by up to 6 times. This library does not support these modes. However, it does support 'fast read' mode which runs SPI at up to 100MHz (only for STM32 and ESP32, see the `readData()` method). The _write_ speeds are limited by the chip itself (ref. `waitWhileBusy()`, so having ultra-fast read rates is only signficant if you are reading video or fast audio data. For that you may need a different library.
+Many of these chips support enhanced SPI communications called Dual and Quad modes, which can increase the read data rate by up to 6 times. This library does not support these modes. However, it does support 'fast read' mode which runs SPI at up to 100MHz (only for STM32 and ESP32, see the `readData()` method). 
+
+The _write_ speeds are limited by the chip itself, see `waitWhileBusy()`, so having ultra-fast read rates is only significant if you are streaming video or fast audio data. For that you may need a different library.
 
 
 ## Using an SPI library with the Arduino Zero
