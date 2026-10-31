@@ -82,12 +82,12 @@ The example sketch doesn't do much. It initializes SPI then calls the comprehens
 > [!NOTE]
 > If using the Arduino Serial Monitor, '\r' will always do a line feed so you will see the addresses scrolling up instead of being refreshed on the same line. That's why I use the antique 'PuTTY' serial monitor.
 
-On the STM32 boards, debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via the SWD pins. This is a great combination.
-
 For the original tests, I used a very nice STM32F407ZGT6 board which I bought on AliExpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a nice STM32F407ZGT6 MCU (32-bit Cortex M4 with FPU), a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-) 
 
 Here are some hard-to-find technical details of this board, including a schematic, \
 https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
+
+With the STM32F407ZGT6 board, debugging was done with the ST-LINK V2.1 half of a Nucleo-64 board connected via the SWD pins. This is a great combination.
 
 ![STM32F407ZGT6 and ST-LINK](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-debug.jpg)
 
