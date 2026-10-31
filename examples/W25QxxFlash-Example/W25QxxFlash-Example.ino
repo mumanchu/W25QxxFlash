@@ -1,26 +1,29 @@
 /////////////////////////////////////////////////////////////////////
 // Test sketch for the 32-bit W25QxxxFlash Library
-// mumanchu and muman.ch, 2026.10.27
+// Copyright (C) mumanchu and muman.ch, 2026.10.31 (Halloween Edition)
+// If you re-use this code, please include the above copyright notice
 // 
 // https://github/mumanchu/W25QxxFlash
 // https://muman.ch/muman/index.htm?muman-matts-blog.htm
 /*
-It doesn't do much. It initializes SPI then calls the comprehensive 
-flash test method which takes several mnutes depending on the memory 
-size.
+This example initializes SPI and the flash chip then calls the 
+comprehensive flash test method which may take a few minutes, 
+depending on the memory chip size.
 
-This code was developed for a nice STM32F407ZGT6 board which I bought 
-on Aliexpress for CHF11.50 (ECBuying). This board is recommended.
-It has a 16Mbit W25Q16 flash chip, and a full SWD/JTAG debug connector.
+Modify the W25Q_xxx #defines according to your SPI pins and the 
+flash chip you are using.
 
-Here are some hard-to-find technical details of this board:
-https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
+NOTES
+- Only 32-bit 3.3V MCUs can be used!
+- Tested on STM32 (Nucleo-64), SAMD51 (Arduino Zero) and ESP32 
+  (ESP32-C3-DevKitC) boards.
+- If you need to change something for a different board, please let 
+  me know and I'll update the code.
+- If the onboard LED is on the same pin as SPI_SCL (D13), then you 
+  *cannot* use the onboard LED and SPI at the same time!
 */
 
 #include <SPI.h>
-
-typedef unsigned long ulong;
-typedef unsigned int uint;
 
 
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -45,35 +48,85 @@ void LogError(const char* msg, const char* filePath, uint line)
 //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-// SPI pins
-// these definitions are not needed if you're using the standard pins
-#define SPI_SCK			D13
-#define SPI_MISO		D12
-#define SPI_MOSI		D11
+// SPI Definitions
+// - define W25Q_SCK/MOSI/MISO if non-standard SPI pins are used
+// - define W25Q_CS, W25Q_MBITS your falsh chip
+// - define W25Q_SPEED accoring to your MCU baord, default is 4MHz
+//   e.g. 18MHz for STM32F103, 12MHz for Arduino Zero, 42MHz for 
+//   STM32F407, 50MHz for ESP32-C3, etc
+//   (each SPI device on the bus can have a different speed)
 
-// SPI chip select for the flash chip
-#define FLASH_CS		D8
+#ifdef STM32F407xx
+// STM32F407ZGT6 with onboard W25Q16JV
+// https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
+// Serial TX is on PA0
+#define W25Q_SCK	PB3
+#define W25Q_MISO	PB4
+#define W25Q_MOSI	PB5
+#define W25Q_CS		PB14		// SPI chip select for the flash chip
+#define W25Q_MBITS	16			// W25Q16JV
+#define W25Q_SPEED	42000000	// 42MHz
+#endif
 
-// Onboard LED
-// TAKE CARE! The LED is often on the same pin as SPI_SCL (D13)
-// you cannot use the LED and SPI at the same time!
-//#define LED_BUILTIN		D13
-#undef LED_BUILTIN
+#ifdef ARDUINO_NUCLEO_64
+#define W25Q_SCK	D13
+#define W25Q_MISO	D12
+#define W25Q_MOSI	D11
+#define W25Q_CS		D8
+#define W25Q_SPEED	18000000	// 18MHz
+#define W25Q_MBITS	64			// W25Q64 used for tests
+#endif
 
-// W25Q16 16Mbit flash chip
-#define W25Q_ENABLE_FLASH_TEST		// enables the test() method
+// this is for the ESP32-C3-DevKitC-02U
+// change if for other ESP32 boards
+#ifdef ARDUINO_ARCH_ESP32
+#define W25Q_SCK	6
+#define W25Q_MISO	5
+#define W25Q_MOSI	7
+#define W25Q_CS		8
+#define W25Q_SPEED	50000000	// 50MHz
+#define W25Q_MBITS	64			// W25Q64 used for tests
+#endif
+
+#ifdef ARDUINO_SAMD_ZERO
+#define W25Q_SPEED	12000000	// 12MHz
+#endif
+
+#ifndef W25Q_SPEED
+#define W25Q_SPEED	4000000		// default is 4MHz
+#endif
+
+#ifndef W25Q_CS
+#define W25Q_CS		8			// SPI chip select pin for the flash chip
+#endif
+
+#ifndef W25Q_MBITS
+#define W25Q_MBITS	64			// W25Qxxx
+#endif
+
+// W25Qxx flash
+#define W25Q_ENABLE_FLASH_TEST	// enables the test() method
 #include "W25QxxFlash.h"
 W25QxxFlash flash;
 
 // Some data from the flash
-byte flashData[1024];
+byte flashData[256];
+
+
+#if defined(ARDUINO_SAMD_ZERO)
+// New SPI channel for the Arduino Zero so it uses the standard SPI pins 
+// else SPI is on the ICSP connector and the flash test shield does not work
+// https://learn.adafruit.com/using-atsamd21-sercom-to-add-more-spi-i2c-serial-ports/creating-a-new-spi
+#include "wiring_private.h"  // for pinPeripheral() function
+static SPIClassSAMD mySPI(&sercom1, 12, 13, 11, SPI_PAD_0_SCK_1, SERCOM_RX_PAD_3);
+#endif
 
 
 // Startup
 void setup() 
 {
-	// Use different pins for Serial logging
-	// this is only for the STM32 Nucleo-64 boards
+	// use different pins for Serial logging
+	// this is only for the (really nice) STM32 Nucleo-64 boards
 	#ifdef ARDUINO_NUCLEO_64
 	Serial.setTx(PC_10);
 	Serial.setRx(PC_11);
@@ -86,38 +139,49 @@ void setup()
 	// comment out if not using PuTTY
 	Serial.print("\033[2J\033[H\033[3J");
 
-	Serial.println("\n\rStarted\n\r");
+	Serial.println("\n\rW25QxxFlash Started\n\r");
 	Serial.flush();
 
-	// 'int' must be 32 bits
-	if (sizeof(int) != 4) {
-		LOGERROR("requires 32-bit MCU");
-		while(1) yield();
-	}
+	// initialize the SPI channel, depending on your MCU type
 
-	// TAKE CARE! The LED is often on the same pin as SPI_SCL (D13)
-	// you cannot use the LED and SPI at the same time!
-	#ifdef LED_BUILTIN
-	pinMode(LED_BUILTIN, OUTPUT);
+	#if defined(ARDUINO_ARCH_ESP32)
+	SPI.begin(W25Q_SCK, W25Q_MISO, W25Q_MOSI);
+
+	#elif defined(ARDUINO_SAMD_ZERO)
+	// on the Zero, override SPI so we can use the standard SPI pins 11/12/13
+	// else SPI is on the ICSP connector, and the flash test shield doesn't work
+	mySPI.begin();
+	SPI = mySPI;
+	// assign pins 11, 12, 13 to SERCOM functionality
+	pinPeripheral(11, PIO_SERCOM);
+	pinPeripheral(12, PIO_SERCOM);
+	pinPeripheral(13, PIO_SERCOM);
+
+	#elif defined(ARDUINO_ARCH_STM32) && defined(W25Q_MISO)
+	SPI.setMISO(W25Q_MISO);
+	SPI.setMOSI(W25Q_MOSI);
+	SPI.setSCLK(W25Q_SCK);
+
+	#else
+	// use default SPI
+	SPI.begin();
 	#endif
 
-	// initialize the SPI channel
-	// uncomment these if you want to use different pins for SPI
-	// this depends on your MCU model
-	//SPI.setMISO(SPI_MISO);
-	//SPI.setMOSI(SPI_MOSI);
-	//SPI.setSCLK(SPI_SCK);
-	// some platforms use this
-	//SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
-	SPI.begin();
+	// set the SPI speed, if errors occur it is probably too fast for your MCU
+	flash.spiSettings = SPISettings(W25Q_SPEED, MSBFIRST, SPI_MODE0);
 
 	// initialize the chip
 	// set 'sizeMBits' to the size of your chip, e.g. 64 for 25Q64
-	if (!flash.begin(&SPI, FLASH_CS, 64)) {
+	if (!flash.begin(&SPI, W25Q_CS, W25Q_MBITS)) {
 		Serial.println("flash.begin() failed");
 		Serial.flush();
 		while (1) yield();
 	}
+
+	char buf[64];
+	sprintf(buf, "Flash %uMbits %uMbytes", W25Q_MBITS, W25Q_MBITS / 8);
+	Serial.println(buf);
+	Serial.flush();
 
 	// each chip should have a unique 64-bit ID
 	uint64_t uniqueId;
@@ -127,7 +191,7 @@ void setup()
 	}
 
 	// run the lengthy flash test
-	// the test takes several minutes depending on the chip size
+	// the test may take several minutes, depending on the chip size
 	if (!flash.test()) {
 		Serial.println("flash.test() failed");
 		Serial.flush();
@@ -136,7 +200,7 @@ void setup()
 	Serial.println("flash.test() successful");
 
 	// read some data from the flash
-	// will be all FFs because the test erased it
+	// will be all FFs because the flash.test() erased it
 	if (!flash.readData(0, flashData, sizeof(flashData))) {
 		Serial.println("flash.readData() failed");
 		Serial.flush();
@@ -144,18 +208,8 @@ void setup()
 	}
 }
 
-// The loop just flashes the LED
 void loop() 
 {
-	// 200ms scheduler
-	ulong t = millis();
-	static ulong t1 = 0;
-	if (t - t1 >= 200) {
-		t1 = t;
-
-		#ifdef LED_BUILTIN
-		// flash the onboard LED
-		digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-		#endif
-	}
+	// this function intentionally left blank
 }
+
