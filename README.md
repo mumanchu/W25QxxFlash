@@ -92,7 +92,7 @@ https://stm32-base.org/boards/STM32F407ZGT6-STM32F4XX.html
 ![STM32F407ZGT6 and ST-LINK](https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/stm32f407zgt6-debug.jpg)
 
 
-## Fast Modes
+## Fast Read Modes
 
 Many of these chips support enhanced SPI communications called Dual and Quad modes, which can increase the read data rate by up to 6 times. This library does not support these modes. However, it does support 'fast read' mode which runs SPI at up to 100MHz (only for STM32 and ESP32, see the `readData()` method). 
 
