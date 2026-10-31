@@ -2,9 +2,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // Winbond W25Qxxx SPI Serial Flash Memory
-// Copyright (C) https://muman.ch + https://github.com/mumanchu, 2026.10.27
+// Copyright (C) https://muman.ch + https://github.com/mumanchu, 2026.10.31
 // If you re-use this software, please include the above copyright notice
-// 
+// For details see,
 // https://github/mumanchu/W25QxxFlash
 /*
 Library for all W25Qxxx SPI Winbond chips, 1..512Mbits.
@@ -32,8 +32,6 @@ Other data sheets can be found on the Winbond website
 https://www.winbond.com/hq/support/documentation
 */
 
-typedef unsigned int uint;
-typedef unsigned long ulong;
 
 class W25QxxFlash
 {
@@ -43,8 +41,8 @@ class W25QxxFlash
 	uint csPin;
 
 public:
-	// check your SPI speed, max is 18MHz for STM32F103
-	SPISettings spiSettings = SPISettings(18000000, MSBFIRST, SPI_MODE0);
+	// use the max. SPI speed for your MCU
+	SPISettings spiSettings = SPISettings(4000000, MSBFIRST, SPI_MODE0);
 
 	bool begin(SPIClass* spi, uint spiCsPin, uint sizeMbits);
 	bool reset();
@@ -76,13 +74,35 @@ protected:
 	bool writeEnable(bool enable = true);
 	bool doErase(byte cmd, uint address);
 	void sendAndReceive(const byte* tx, byte* rx, uint length);
+
+	// This extended SPI method is not implemented on all platforms:
+	// "void transfer(const void* tx_buf, void* rx_buf, size_t count);"
+	// https://github.com/arduino/ArduinoCore-API/discussions/189
+	#if defined(ARDUINO_ARCH_STM32)
+	void spiTransfer(const byte* tx, byte* rx, uint length) { 
+		spi->transfer(tx, rx, length);
+	}
+	#elif defined(ARDUINO_ARCH_ESP32)
+	void spiTransfer(const byte* tx, byte* rx, uint length) {
+		spi->transferBytes(tx, rx, length);
+	}
+	#else
+	// our own implementation
+	void spiTransfer(const byte* tx, byte* rx, uint length);
+	#endif
 };
 
 
 // Call this from setup()
 bool W25QxxFlash::begin(SPIClass* spi, uint spiCsPin, uint sizeMbits)
 {
-	// size in megabits
+	// int must be 32 bits
+	if (sizeof(int) != 4) {
+		LOGERROR("requires 32-bit MCU");
+		return false;
+	}
+
+	// chip size in megabits
 	switch (sizeMbits) {
 	case 1:				// 1..512Mbits
 	case 2:
@@ -134,14 +154,14 @@ bool W25QxxFlash::reset()
 	if (!readBusyBit(&busy))
 		return false;
 	if (busy) {
-		LOGERROR("Cannot reset while busy");
+		LOGERROR("cannot reset while busy");
 		return false;
 	}
 	byte sr2;
 	if (!readRegister(RDSTATUS2, &sr2))
 		return false;
 	if (sr2 & 0x80) {
-		LOGERROR("Cannot reset while suspended");
+		LOGERROR("cannot reset while suspended");
 		return false;
 	}
 
@@ -201,8 +221,8 @@ bool W25QxxFlash::readUniqueId(uint64_t* uniqueId)
 	for (int i = 0; i < 8; ++i)
 		*out++ = *in--;
 
-	// all 0xff = no response
-	if (uid == 0xffffffffffffffff)
+	// all 0xff or 0x00 = no response
+	if (uid == 0xffffffffffffffff || uid == 0)
 		return false;
 	*uniqueId = uid;
 
@@ -221,18 +241,23 @@ bool W25QxxFlash::readData(uint address, byte* data, uint length)
 	// all 0xff if it fails
 	memset(data, 0xff, length);
 
-	// fast/normal mode message is different
+	// fast/normal read message is different
+	// not all architectures can access the SPI clock speed
+	uint spiClock = 0;
+	#if defined(ARDUINO_ARCH_ESP32)
+	spiClock = spiSettings._clock;
+	#elif defined(STM32_CORE_VERSION)
+	spiClock = spiSettings.getClockFreq();
+	#endif
 	byte tx[5];
-	bool fastMode = spiSettings.getClockFreq() > 50000000;
-	if (fastMode) {
-		// fast mode for 100MHz clock
-		//tx[5] = { 0x0B, address >> 16, address >> 8, address, 0xff };
+	bool fastRead = spiClock > 50000000;
+	if (fastRead) {
+		// fast read for 100MHz clock
 		tx[0] = 0x0b;
 		tx[4] = 0xff;
 	}
 	else {
-		// normal mode 50MHz
-		//tx[4] = { 0x03, address >> 16, address >> 8, address };
+		// normal read <= 50MHz
 		tx[0] = 0x03;
 	}
 	tx[1] = (byte)(address >> 16);
@@ -245,7 +270,7 @@ bool W25QxxFlash::readData(uint address, byte* data, uint length)
 
 		spi->beginTransaction(spiSettings);
 		digitalWrite(csPin, 0);
-		spi->transfer(tx, fastMode ? 5 : 4);
+		spi->transfer(tx, fastRead ? 5 : 4);
 		spi->transfer(data, bytesToRead);
 		digitalWrite(csPin, 1);
 		spi->endTransaction();
@@ -269,7 +294,7 @@ bool W25QxxFlash::writeData(uint address, const byte* data, uint length)
 		if (bytesToWrite > length)
 			bytesToWrite = length;
 
-		byte tx[4] = { 0x02, address >> 16, address >> 8, address };
+		byte tx[4] = { 0x02, (byte)(address >> 16), (byte)(address >> 8), (byte)address };
 
 		// automatic write disable after erase or program
 		writeEnable();
@@ -277,7 +302,7 @@ bool W25QxxFlash::writeData(uint address, const byte* data, uint length)
 		spi->beginTransaction(spiSettings);
 		digitalWrite(csPin, 0);
 		spi->transfer(tx, 4);
-		spi->transfer(data, NULL, bytesToWrite);
+		spiTransfer(data, NULL, bytesToWrite);
 		digitalWrite(csPin, 1);
 		spi->endTransaction();
 
@@ -285,7 +310,6 @@ bool W25QxxFlash::writeData(uint address, const byte* data, uint length)
 			LOGERROR("writeData() timeout");
 			return false;
 		}
-
 		address += bytesToWrite;
 		data += bytesToWrite;
 		length -= bytesToWrite;
@@ -333,7 +357,7 @@ bool W25QxxFlash::eraseChip()
 // Is the chip all FFs?
 bool W25QxxFlash::isErased()
 {
-	byte buf[512];
+	byte buf[256];
 	for (uint adds = 0; adds < numBytes; adds += sizeof(buf)) {
 		if (!readData(adds, buf, sizeof(buf)))
 			return false;
@@ -348,7 +372,7 @@ bool W25QxxFlash::isErased()
 // Shared private method
 bool W25QxxFlash::doErase(byte cmd, uint address)
 {
-	byte tx[4] = { cmd, address >> 16, address >> 8, address };
+	byte tx[4] = { cmd, (byte)(address >> 16), (byte)(address >> 8), (byte)address };
 	writeEnable();
 	sendAndReceive(tx, NULL, 4);
 	return true;
@@ -389,7 +413,7 @@ bool W25QxxFlash::waitWhileBusy(ulong msTimeout)
 			LOGERROR("busy timeout");
 			return false;
 		}
-		delayMicroseconds(100);
+		yield();
 	}
 	return true;
 }
@@ -424,13 +448,35 @@ bool W25QxxFlash::writeRegister(W25Q_WRREG reg, byte data)
 	return true;
 }
 
+// This extended SPI method is not implemented on all platforms:
+// "void transfer(const void* tx_buf, void* rx_buf, size_t count);"
+// https://github.com/arduino/ArduinoCore-API/discussions/189
+// so we implement it here
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+void W25QxxFlash::spiTransfer(const byte* tx, byte* rx, uint length)
+{
+	byte buf[256];
+	while (length) {
+		uint len = length > sizeof(buf) ? sizeof(buf) : length;
+		memcpy(buf, tx, len);
+		spi->transfer(buf, len);
+		if (rx != NULL) {
+			memcpy(rx, buf, len);
+			rx += len;
+		}
+		tx += len;
+		length -= len;
+	}
+}
+#endif
+
 // Send data and get the optional returned bytes
 // rx = NULL to ignore the response
 void W25QxxFlash::sendAndReceive(const byte* tx, byte* rx, uint length)
 {
 	spi->beginTransaction(spiSettings);
 	digitalWrite(csPin, 0);
-	spi->transfer(tx, rx, length);
+	spiTransfer(tx, rx, length);
 	digitalWrite(csPin, 1);
 	spi->endTransaction();
 }
@@ -453,6 +499,11 @@ bool W25QxxFlash::test()
 	// data buffer, length must be power-of-2
 	byte buf[512];
 	const uint bufSize = sizeof(buf);
+
+	#ifdef DEBUG
+	Serial.println("Checking erased...");
+	Serial.flush();
+	#endif
 
 	// is the chip already erased?
 	if (!isErased()) {
@@ -499,7 +550,7 @@ bool W25QxxFlash::test()
 
 	// read back and verify all the data
 	#ifdef DEBUG
-	Serial.println("Verifying...");
+	Serial.println("\n\rVerifying...");
 	Serial.flush();
 	#endif
 
@@ -518,7 +569,7 @@ bool W25QxxFlash::test()
 			if (buf[i] != b) {
 				#ifdef DEBUG
 				char s[128];
-				sprintf(s, "verify failed : adds=0x%08x (%u), was %02x, sb %02x", 
+				sprintf(s, "\n\rverify failed : adds=0x%08x (%u), was %02x, sb %02x", 
 					adds + i, adds + i, buf[i], b);
 				LOGERROR(s);
 				#endif
@@ -529,7 +580,7 @@ bool W25QxxFlash::test()
 
 	// erase the chip again
 	#ifdef DEBUG
-	Serial.println("Erasing...");
+	Serial.println("\n\rErasing...");
 	Serial.flush();
 	#endif
 
