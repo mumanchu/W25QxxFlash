@@ -2,7 +2,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 // Winbond W25Qxxx SPI Serial Flash Memory
-// Copyright (C) https://muman.ch + https://github.com/mumanchu, 2026.10.31
+// Copyright (C) https://muman.ch + https://github.com/mumanchu, 2026.11.01
 // If you re-use this software, please include the above copyright notice
 // For details see,
 // https://github/mumanchu/W25QxxFlash
@@ -77,8 +77,7 @@ protected:
 
 	// This extended SPI method is not implemented on all platforms:
 	// "void transfer(const void* tx_buf, void* rx_buf, size_t count);"
-	// https://github.com/arduino/ArduinoCore-API/discussions/189
-	#if defined(ARDUINO_ARCH_STM32)
+	#if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_SAMD_ADAFRUIT)
 	void spiTransfer(const byte* tx, byte* rx, uint length) { 
 		spi->transfer(tx, rx, length);
 	}
@@ -450,9 +449,9 @@ bool W25QxxFlash::writeRegister(W25Q_WRREG reg, byte data)
 
 // This extended SPI method is not implemented on all platforms:
 // "void transfer(const void* tx_buf, void* rx_buf, size_t count);"
-// https://github.com/arduino/ArduinoCore-API/discussions/189
 // so we implement it here
-#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32)
+#if !defined(ARDUINO_ARCH_STM32) && !defined(ARDUINO_ARCH_ESP32) && \
+    !defined(ARDUINO_SAMD_ADAFRUIT)
 void W25QxxFlash::spiTransfer(const byte* tx, byte* rx, uint length)
 {
 	byte buf[256];
