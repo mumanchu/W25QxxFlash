@@ -1,26 +1,26 @@
-/////////////////////////////////////////////////////////////////////
-// Test sketch for the 32-bit W25QxxxFlash Library
-// Copyright (C) mumanchu and muman.ch, 2026.10.31 (Halloween Edition)
+///////////////////////////////////////////////////////////////////////////////
+// Example sketch for the 32-bit W25QxxxFlash Library
+// Copyright (C) https://github.com/mumanchu and https://muman.ch, 2026.11.01
 // If you re-use this code, please include the above copyright notice
 // 
 // https://github/mumanchu/W25QxxFlash
 // https://muman.ch/muman/index.htm?muman-matts-blog.htm
 /*
-This example initializes SPI and the flash chip then calls the 
-comprehensive flash test method which may take a few minutes, 
-depending on the memory chip size.
+This example initializes SPI and the flash chip then calls the comprehensive 
+flash test method which may take a few minutes, depending on the flash chip 
+size.
 
-Modify the W25Q_xxx #defines according to your SPI pins and the 
-flash chip you are using.
+Modify the W25Q_xxx #defines according to your SPI pins and the flash chip 
+you are using.
 
 NOTES
 - Only 32-bit 3.3V MCUs can be used!
 - Tested on STM32 (Nucleo-64), SAMD51 (Arduino Zero) and ESP32 
   (ESP32-C3-DevKitC) boards.
-- If you need to change something for a different board, please let 
-  me know and I'll update the code.
-- If the onboard LED is on the same pin as SPI_SCL (D13), then you 
-  *cannot* use the onboard LED and SPI at the same time!
+- If you need to change something for a different board, please let me know 
+  and I'll update the code.
+- If the onboard LED is on the same pin as SPI_SCL (D13), then you *cannot* 
+  use the onboard LED and SPI at the same time!
 */
 
 #include <SPI.h>
@@ -78,7 +78,7 @@ void LogError(const char* msg, const char* filePath, uint line)
 #endif
 
 // this is for the ESP32-C3-DevKitC-02U
-// change if for other ESP32 boards
+// modify if for other ESP32 boards
 #ifdef ARDUINO_ARCH_ESP32
 #define W25Q_SCK	6
 #define W25Q_MISO	5
