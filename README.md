@@ -82,6 +82,10 @@ The example sketch doesn't do much. It initializes SPI then calls the comprehens
 > [!NOTE]
 > If using the Arduino Serial Monitor, '\r' will always do a line feed so you will see the addresses scrolling up instead of being refreshed on the same line. That's why I use the antique 'PuTTY' serial monitor.
 
+Using PuTTY as the serial monitor, the output looks quite nice...
+
+<img width="300" alt="image" src="https://github.com/mumanchu/mumanchu/blob/main/assets/W25QxxFlash/putty.png" />
+
 For the original tests, I used a very nice STM32F407ZGT6 board which I bought on AliExpress for CHF11.50 (ECBuying store). This STM32 board is recommended. It has a nice STM32F407ZGT6 MCU (32-bit Cortex M4 with FPU), a 16Mbit W25Q16 SPI flash chip, an SD card which is also on the SPI bus, a battery-backed RTC, and a full SWD/JTAG debug connector :-) 
 
 Here are some hard-to-find technical details of this board, including a schematic, \
@@ -94,10 +98,38 @@ With the STM32F407ZGT6 board, debugging was done with the ST-LINK V2.1 half of a
 
 ## Fast Read Modes
 
-Many of these chips support enhanced SPI communications called Dual and Quad modes, which can increase the read data rate by up to 6 times. This library does not support these modes. However, it does support 'fast read' mode which runs SPI at up to 100MHz (only for STM32 and ESP32, see the `readData()` method). 
+Many of these chips support enhanced SPI communications called Dual and Quad modes, which can increase the read data rate by up to 6 times. This library does not support these modes. However, it does support 'fast read' mode which runs SPI at up to 100MHz, but only if your MCU can run at 100MHz, which is doubtful. See the `readData()` method. 
 
 The _write_ speeds are limited by the chip itself, see `waitWhileBusy()`, so having ultra-fast read rates is only significant if you are streaming video or fast audio data. For that you may need a different library.
 
+
+## Incompatible SPI Libraries
+
+The SPI libraries for the STM32, ESP32 and SAMD are not fully compatible. You cannot use the same code for all platforms.
+
+The original SPI library had a method that sent and received bytes using _the same_ buffer. Improved libraries have a method that sends and optionally receives bytes using two different buffers, which is faster. It also allows the send buffer to be `const` and the receive buffer can be `NULL` to discard the received bytes. Compatibility is made more difficult because these new methods have different names in different SPI libraries. 
+
+Here is a brief discussion about this, \
+https://github.com/arduino/ArduinoCore-API/discussions/189
+
+This is the code used by this library, which saves using different classes for different platforms. You may need to modify this if you're using another platform.
+
+```cpp
+    // This extended SPI method is not implemented on all platforms:
+    // "void transfer(const void* tx_buf, void* rx_buf, size_t count);"
+    #if defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_SAMD_ADAFRUIT)
+    void spiTransfer(const byte* tx, byte* rx, uint length) { 
+        spi->transfer(tx, rx, length);
+    }
+    #elif defined(ARDUINO_ARCH_ESP32)
+    void spiTransfer(const byte* tx, byte* rx, uint length) {
+        spi->transferBytes(tx, rx, length);
+    }
+    #else
+    // our own implementation
+    void spiTransfer(const byte* tx, byte* rx, uint length);
+    #endif
+```
 
 ## Using an SPI library with the Arduino Zero
 
@@ -134,10 +166,11 @@ Add these lines to `setup()`, before `flash.begin()` is called,
 
 ## Future Updates
 
-Some enhancements may be made to this library, if required by future applications. (Or you can do this for homework :-)
+Some enhancements may be made to this library, if required by future applications.
 
-* Non-blocking write data and erase procedures.
-* 'Verify' option for `writeData()` and `erase()` methods. 
+* Non-blocking write data and erase procedures
+* 'Verify' option for `writeData()` and `erase()` methods
+* Example sketch for the Adafruit Metro M4 (SAMD51) which has an onboard 25Q16 (2Mbyte)
 
 
 ## Data Sheets
@@ -162,7 +195,7 @@ https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi
 
 | Date       | Version  | Details |
 |:---------- |:---------|:----------- |
-| 2026.10.31 | 1.0.4    | Updated for ESP32s, improved example sketch |
+| 2026.11.01 | 1.0.4    | Updated for ESP32s, improved example sketch |
 | 2026.10.27 | 1.0.3    | Improvements after testing with new chips, see github Releases comment |
 | 2026.07.17 | 1.0.2    | Cosmetic updates (Title, README, example comments) |
 | 2026.05.16 | 1.0.1	| Correct include file name in library.properties |
