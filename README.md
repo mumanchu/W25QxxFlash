@@ -10,7 +10,7 @@
 
 Library for 3.3V SPI Flash memory chips, 1..512Mbits. These chips all connect to the MCU via an SPI interface. 
 
-The library has been tested on STM32 Nucleo, Espressif ESP32 and Arduino Zero SAMD51 boards. But each MCU board has different idiosyncrasies, so please let me know if you find a problem and I'll fix it ASAP.
+The library has been tested on STM32 Nucleo, Espressif ESP32 and Arduino Zero SAMD51 boards. Each MCU board has differences, especially with the SPI libraries, so please let me know if you find a problem.
 
 Here are the WinBond chips, but it should work with SPI flash memories from most manufacturers.
 
@@ -107,12 +107,12 @@ The _write_ speeds are limited by the chip itself, see `waitWhileBusy()`, so hav
 
 The SPI libraries for the STM32, ESP32 and SAMD are not fully compatible. You cannot use the same code for all platforms.
 
-The original SPI library had a method that sent and received bytes using _the same_ buffer. Improved libraries have a method that sends and optionally receives bytes using two different buffers, which is faster. It also allows the send buffer to be `const` and the receive buffer can be `NULL` to discard the received bytes. Compatibility is made more difficult because these new methods have different names in different SPI libraries. 
+The original SPI library had a method that sent and received bytes using _the same_ buffer. Improved libraries have a faster method that sends and optionally receives bytes using two different buffers. This also allows the send buffer to be `const` and the receive buffer can be `NULL` to discard the received bytes. Compatibility is made more difficult because these new methods have different names in different SPI libraries. 
 
 Here is a brief discussion about this, \
 https://github.com/arduino/ArduinoCore-API/discussions/189
 
-This is the code used by this library, which saves using different classes for different platforms. You may need to modify this if you're using another platform.
+This is the code used by this library. These are 'inline' methods, so there's no overhead. You may need to add to this if you're using another platform.
 
 ```cpp
     // This extended SPI method is not implemented on all platforms:
@@ -168,7 +168,7 @@ Add these lines to `setup()`, before `flash.begin()` is called,
 
 Some enhancements may be made to this library, if required by future applications.
 
-* Non-blocking write data and erase procedures
+* Non-blocking write data and erase procedures, add `isBusy()` method
 * 'Verify' option for `writeData()` and `erase()` methods
 * Example sketch for the Adafruit Metro M4 (SAMD51) which has an onboard 25Q16 (2Mbyte)
 
@@ -199,7 +199,6 @@ https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi
 | 2026.10.27 | 1.0.3    | Improvements after testing with new chips, see github Releases comment |
 | 2026.07.17 | 1.0.2    | Cosmetic updates (Title, README, example comments) |
 | 2026.05.16 | 1.0.1	| Correct include file name in library.properties |
-| 2026.05.16 | 1.0.0	| First release |
 
 <br/>
 
