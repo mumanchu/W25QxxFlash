@@ -173,7 +173,7 @@ Some enhancements may be made to this library, if required by future application
 * Example sketch for the Adafruit Metro M4 (SAMD51) which has an onboard 25Q16 (2Mbyte)
 
 
-## Data Sheets
+## References
 
 WINBOND CHIP RANGE \
 https://www.winbond.com/productResource-files/DA05-0006.pdf
@@ -186,6 +186,9 @@ https://stm32-base.org/assets/pdf/devices/W25Q16JV.pdf
 
 Other data sheets can be found on the Winbond website \
 https://www.winbond.com/hq/support/documentation
+
+PuTTY in the Microsoft Store\
+https://apps.microsoft.com/detail/xpfnzksklbp7rj
 
 If you want to learn about SPI, this is a great introduction, \
 https://www.analog.com/en/resources/analog-dialogue/articles/introduction-to-spi-interface.html
